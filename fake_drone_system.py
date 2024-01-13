@@ -8,16 +8,13 @@ from threading import Lock, Event, RLock, Thread
 from typing import Dict, Tuple, Any
 from queue import Queue
 from time import sleep
-from math import pi, cos, degrees, radians
 
-from ros2_stub import DroneMessage
 from drone_utils import DroneId, DroneState, DroneMode, DroneCommand, DroneCommandId
-from drone_utils import DroneCommand_RTB, DroneCommand_MOVE_TO, DroneCommand_SEARCH_SECTOR
-from maplib import LatLon, EARTH_RADIUS
+from maplib import LatLon
 from pathfinder import PathfinderState
 
 DRONE_CYCLE_INTERVAL = 1
-DRONE_SPEED = 0.5  # In metres/s, UNTESTED.
+DRONE_SPEED = 3  # In metres/s, UNTESTED.
 
 def unpack_command(cmd: DroneCommand) -> Dict[str, Any]:
     """ Unpacks a Command from the Mission Control. """
@@ -81,45 +78,48 @@ class Drone:
                 pass
 
     def updatePositionWithCycle(self):
-        #TODO: Still work in progress. I'm trying to figure out how geodesic projections work -- if this pays off, this will provide more accurate computations in the real drone.
+        """ Update the position of the drone in a single cycle """
         threshold = 1
-        pass
-        # with self._lock:
-        #     pos = self.drone_states[self.drone_id].get_position()
-        #     dist = self.target_pos.distFromPoint(pos)
-        #     if pos is None:
-        #         return
-        #     if dist > threshold:
-        #         distance_vec = pos.toXY(self.target_pos)
-        #         print("Displacement:", distance_vec, "Distance: ", dist)
-        #         distance_vec.x = (distance_vec.x / dist) * self.speed
-        #         distance_vec.y = (distance_vec.y / dist) * self.speed
-
-        #         metres_per_lat = radians(EARTH_RADIUS)
-        #         metres_per_lon = radians(EARTH_RADIUS) * cos(radians(pos.lat))
-
-        #         dx, dy = distance_vec.x, distance_vec.y
-        #         new_lat = pos.lat + (dy * metres_per_lat)
-        #         new_lon = pos.lon + (dx * metres_per_lon)
-
-        #         self.drone_states[self.drone_id]._position.lat = new_lat
-        #         self.drone_states[self.drone_id]._position.lon = new_lon
-        #         return
-        #     else:
-        #         match self.drone_states[self.drone_id].get_mode():
-        #             case DroneMode.TRAVEL:
-        #                 if self.next_mode is None:
-        #                     raise NotImplementedError()
-        #                 self.log(f"Drone reached position.")
-        #                 self.set_drone_mode(self.next_mode)
-        #             case DroneMode.SEARCH:
-        #                 if self.pathfinder is None:
-        #                     raise NotImplementedError(f"Drone {self.drone_id} in SEARCH mode, but no pathfinder object found")
+        with self._lock:
+            pos = self.drone_states[self.drone_id].get_position()
+            dist = self.target_pos.distFromPoint(pos)
+            if pos is None:
+                return
+            
+            if dist <= threshold:
+                self.log(f"Drone reached position.")
+                match self.drone_states[self.drone_id].get_mode():
+                    case DroneMode.TRAVEL:
+                        if self.next_mode is None:
+                            raise NotImplementedError()
+                        self.set_drone_mode(self.next_mode)
+                    case DroneMode.SEARCH:
+                        if self.pathfinder is None:
+                            raise NotImplementedError(f"Drone {self.drone_id} in SEARCH mode, but no pathfinder object found")
                         
-        #                 self.target_pos = self.pathfinder.get_next_waypoint(self.target_pos)
-        #                 pass
-        #             case DroneMode.RTB:
-        #                 self.set_drone_mode(self.next_mode)
+                        self.target_pos = self.pathfinder.get_next_waypoint(self.target_pos)
+                        pass
+                    case DroneMode.RTB:
+                        self.set_drone_mode(self.next_mode)
+                return
+            
+            # Otherwise, we move by a certain speed
+            if dist >= self.speed:
+                # Here, we won't reach the target within the next cycle.
+                distance_vec = pos.toXY(self.target_pos)
+                distance_vec = self.target_pos.toXY(pos)
+                distance_vec.x = (distance_vec.x / dist) * self.speed
+                distance_vec.y = (distance_vec.y / dist) * self.speed
+
+                self.drone_states[self.drone_id]._position = distance_vec.toLatLon()
+            else:
+                # Here, we WILL reach the target within the next cycle, but speed will overshoot.
+                distance_vec = pos.toXY(self.target_pos)
+                distance_vec = self.target_pos.toXY(pos)
+                distance_vec.x = (distance_vec.x / dist) * dist
+                distance_vec.y = (distance_vec.y / dist) * dist
+
+                self.drone_states[self.drone_id]._position = distance_vec.toLatLon()
 
     def handle_command(self, drone_command: DroneCommand):
         print(f"Drone {self.drone_id}: Received command {DroneCommandId(drone_command.command_id).name}")
