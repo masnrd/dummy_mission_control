@@ -4,8 +4,6 @@ A dummy mission control that runs the Mission Control web server without any dep
 - Previous dependencies on ROS are now replaced with a stub.
 - As part of the simulation, drones are simulated in a separate thread, receiving commands as necessary.
 
-For now, drone movements are poorly handled -- they careen off into nowhere. Hence I've disabled drone movement for now, but you should be able to track their positions as shown in `mission_control_webserver`.
-
 # Installation
 ```bash
 pip install -r requirements.txt
@@ -21,6 +19,9 @@ This will initialise the web app at `127.0.0.1:5000`.
     - `/api/info`: Obtains drone information, this is used by the index page to query drone status.
     - `/api/action/moveto?drone_id={DRONE ID}&lat={LATITUDE}&lon={LONGITUDE}`: Move to a position, then idle.
     - `/api/action/search?drone_id={DRONE ID}&lat={LATITUDE}&lon={LONGITUDE}`: Move to a position, then begin search at that coordinate.
+- Note that if you set a faraway latitude and longitude, the drone WILL start going in that direction, so do choose a coordinate close by.
+
+To set the starting coordinates of all drones, modify `HOME_POSITION` in line 14 of `mission_control_node.py`.
 
 # Organisation
 The main webapp content is in `mission_control_webserver.py`.

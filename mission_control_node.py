@@ -11,11 +11,12 @@ from fake_drone_system import DroneSystem
 logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
 
 COMMAND_CHECK_INTERVAL = 1
+HOME_POSITION = LatLon(0.0, 0.0)
 
 class MCNode:
     def __init__(self, drone_states: Dict[DroneId, DroneState], commands: Queue[Tuple[DroneId, DroneCommand]]):
         self.logger = logging.getLogger("mission_control")
-        self.drone_sys = DroneSystem(drone_states, LatLon(0.0, 0.0))
+        self.drone_sys = DroneSystem(drone_states, HOME_POSITION)
         self.drone_states = drone_states
 
         # Initialise command queue
@@ -71,7 +72,7 @@ def main(args=None):
     mcnode.start_node()
 
     # Start drones
-    drone_sys = DroneSystem(drone_states, LatLon(0.0, 0.0))
+    drone_sys = DroneSystem(drone_states, HOME_POSITION)
     drone_sys.start()
     drone_sys.connect_drones()
 
