@@ -83,42 +83,43 @@ class Drone:
     def updatePositionWithCycle(self):
         #TODO: Still work in progress. I'm trying to figure out how geodesic projections work -- if this pays off, this will provide more accurate computations in the real drone.
         threshold = 1
-        with self._lock:
-            pos = self.drone_states[self.drone_id].get_position()
-            dist = self.target_pos.distFromPoint(pos)
-            if pos is None:
-                return
-            if dist > threshold:
-                distance_vec = pos.toXY(self.target_pos)
-                print("Displacement:", distance_vec, "Distance: ", dist)
-                distance_vec.x = (distance_vec.x / dist) * self.speed
-                distance_vec.y = (distance_vec.y / dist) * self.speed
+        pass
+        # with self._lock:
+        #     pos = self.drone_states[self.drone_id].get_position()
+        #     dist = self.target_pos.distFromPoint(pos)
+        #     if pos is None:
+        #         return
+        #     if dist > threshold:
+        #         distance_vec = pos.toXY(self.target_pos)
+        #         print("Displacement:", distance_vec, "Distance: ", dist)
+        #         distance_vec.x = (distance_vec.x / dist) * self.speed
+        #         distance_vec.y = (distance_vec.y / dist) * self.speed
 
-                metres_per_lat = radians(EARTH_RADIUS)
-                metres_per_lon = radians(EARTH_RADIUS) * cos(radians(pos.lat))
+        #         metres_per_lat = radians(EARTH_RADIUS)
+        #         metres_per_lon = radians(EARTH_RADIUS) * cos(radians(pos.lat))
 
-                dx, dy = distance_vec.x, distance_vec.y
-                new_lat = pos.lat + (dy * metres_per_lat)
-                new_lon = pos.lon + (dx * metres_per_lon)
+        #         dx, dy = distance_vec.x, distance_vec.y
+        #         new_lat = pos.lat + (dy * metres_per_lat)
+        #         new_lon = pos.lon + (dx * metres_per_lon)
 
-                self.drone_states[self.drone_id]._position.lat = new_lat
-                self.drone_states[self.drone_id]._position.lon = new_lon
-                return
-            else:
-                match self.drone_states[self.drone_id].get_mode():
-                    case DroneMode.TRAVEL:
-                        if self.next_mode is None:
-                            raise NotImplementedError()
-                        self.log(f"Drone reached position.")
-                        self.set_drone_mode(self.next_mode)
-                    case DroneMode.SEARCH:
-                        if self.pathfinder is None:
-                            raise NotImplementedError(f"Drone {self.drone_id} in SEARCH mode, but no pathfinder object found")
+        #         self.drone_states[self.drone_id]._position.lat = new_lat
+        #         self.drone_states[self.drone_id]._position.lon = new_lon
+        #         return
+        #     else:
+        #         match self.drone_states[self.drone_id].get_mode():
+        #             case DroneMode.TRAVEL:
+        #                 if self.next_mode is None:
+        #                     raise NotImplementedError()
+        #                 self.log(f"Drone reached position.")
+        #                 self.set_drone_mode(self.next_mode)
+        #             case DroneMode.SEARCH:
+        #                 if self.pathfinder is None:
+        #                     raise NotImplementedError(f"Drone {self.drone_id} in SEARCH mode, but no pathfinder object found")
                         
-                        self.target_pos = self.pathfinder.get_next_waypoint(self.target_pos)
-                        pass
-                    case DroneMode.RTB:
-                        self.set_drone_mode(self.next_mode)
+        #                 self.target_pos = self.pathfinder.get_next_waypoint(self.target_pos)
+        #                 pass
+        #             case DroneMode.RTB:
+        #                 self.set_drone_mode(self.next_mode)
 
     def handle_command(self, drone_command: DroneCommand):
         print(f"Drone {self.drone_id}: Received command {DroneCommandId(drone_command.command_id).name}")

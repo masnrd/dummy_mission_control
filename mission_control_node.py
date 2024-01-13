@@ -14,6 +14,7 @@ class MCNode:
     def __init__(self, drone_states: Dict[DroneId, DroneState], commands: Queue[Tuple[DroneId, DroneCommand]]):
         self.logger = logging.getLogger("mission_control")
         self.drone_sys = DroneSystem(drone_states, LatLon(0.0, 0.0))
+        self.drone_states = drone_states
 
         # Initialise command queue
         self.command_loop = threading.Timer(COMMAND_CHECK_INTERVAL, self.check_command_loop)
@@ -35,6 +36,9 @@ class MCNode:
         try:
             drone_id, command = self.commands.get(block=False)
             print(f"MISSION CONTROL: User entered command {DroneCommandId(command.command_id).name}")
+            if drone_id not in self.drone_states.keys():
+                print(f"Warning: No such drone ID {drone_id}")
+                return
             self.mc_send_command(drone_id, command)
         except Empty:
             pass
@@ -47,7 +51,11 @@ class MCNode:
 
 def main(args=None):
     drone_states = {
-        DroneId(69): DroneState(69)
+        DroneId(69): DroneState(69),
+        DroneId(1): DroneState(1),
+        DroneId(2): DroneState(2),
+        DroneId(3): DroneState(3),
+        DroneId(4): DroneState(4),
     }
     commands: Queue[Tuple[DroneId, DroneCommand]] = Queue()
 
