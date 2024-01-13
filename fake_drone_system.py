@@ -3,6 +3,7 @@ fake_drone_system:
 A fake system of drones to simulate interaction between the ROS2 mission control node and drone nodes
 """
 import struct
+import random
 import logging
 from threading import Lock, Event, RLock, Thread
 from typing import Dict, Tuple, Any
@@ -87,7 +88,6 @@ class Drone:
                 return
             
             if dist <= threshold:
-                self.log(f"Drone reached position.")
                 match self.drone_states[self.drone_id].get_mode():
                     case DroneMode.TRAVEL:
                         if self.next_mode is None:
@@ -98,7 +98,6 @@ class Drone:
                             raise NotImplementedError(f"Drone {self.drone_id} in SEARCH mode, but no pathfinder object found")
                         
                         self.target_pos = self.pathfinder.get_next_waypoint(self.target_pos)
-                        pass
                     case DroneMode.RTB:
                         self.set_drone_mode(self.next_mode)
                 return
@@ -137,10 +136,13 @@ class Drone:
                 self.set_drone_target_pos(target_pos.lat, target_pos.lon)
                 with self._lock:
                     self.pathfinder = PathfinderState(target_pos, None)
-
+        
+        self.set_drone_last_command(drone_command)
+            
     def connect(self):
         with self._lock:
             self.drone_states[self.drone_id]._mode = DroneMode.IDLE
+            self.drone_states[self.drone_id]._battery_percentage = random.uniform(10, 100)
             self.log(f"Reports READY")
 
     def set_drone_mode(self, new_mode: DroneMode, next_mode: DroneMode = None):
@@ -168,6 +170,10 @@ class Drone:
     def set_drone_target_pos(self, new_lat: float, new_lon: float):
         with self._lock:
             self.target_pos = LatLon(new_lat, new_lon)
+
+    def set_drone_last_command(self, command: DroneCommand):
+        with self._lock:
+            self.drone_states[self.drone_id]._last_command = command
     
 class DroneSystem(metaclass=_SingletonMeta):
     """

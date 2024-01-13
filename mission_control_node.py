@@ -8,6 +8,8 @@ from drone_utils import DroneId, DroneState, DroneCommand, DroneMode, DroneComma
 from mission_control_webserver import MCWebServer
 from fake_drone_system import DroneSystem
 
+logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
+
 COMMAND_CHECK_INTERVAL = 1
 
 class MCNode:
